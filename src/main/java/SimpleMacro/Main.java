@@ -1,99 +1,95 @@
 package SimpleMacro;
 
-import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.layout.GridPane;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.stage.Stage;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
 
-public class Main extends Application {
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
-    GridPane mainGrid;
-    GridPane lGrid;
-    GridPane cGrid;
-    GridPane rGrid;
+public class Main {
 
-    @Override
-    public void start(Stage primaryStage) throws Exception{
-        primaryStage.setTitle("Semi Mecro");
+    public KeyboardController keyboard;
+    public MouseController mouse;
 
-        mainGrid = new GridPane();
-        mainGrid.setAlignment(Pos.CENTER);
-        mainGrid.setHgap(10);
-        mainGrid.setVgap(10);
-        mainGrid.setPadding(new Insets(25, 25, 25, 25));
+    public static void main(String[] args) throws AWTException, InterruptedException {
 
-        lGrid = new GridPane();
-        lGrid.setAlignment(Pos.CENTER_LEFT);
-        lGrid.setHgap(10);
-        lGrid.setVgap(10);
-        lGrid.setPadding(new Insets(25, 100, 25, 25));
-
-        rGrid = new GridPane();
-        rGrid.setAlignment(Pos.CENTER_LEFT);
-        rGrid.setHgap(10);
-        rGrid.setVgap(10);
-        rGrid.setPadding(new Insets(25, 25, 25, 100));
-
-        StatusBar.init();
-
-        cGrid = new GridPane();
-        cGrid.setAlignment(Pos.CENTER_LEFT);
-        cGrid.setHgap(10);
-        cGrid.setVgap(10);
-        cGrid.setPadding(new Insets(0, 0, 0, 0));
-
-        cGrid.add(StatusBar.recordText,0,0,2,2);
-        cGrid.add(StatusBar.rmButton,2,0);
-
-        mainGrid.add(lGrid,0,1);
-        mainGrid.add(StatusBar.status,0,0,1,1);
-        mainGrid.add(cGrid,0,2,2,2);
-        mainGrid.add(rGrid,2,1);
+        Main main = new Main();
+        main.run();
 
 
-        // main
-        for(int leftCount = 0; leftCount < 4; leftCount++) {
-            addLeftButton("l-button" + leftCount, leftCount);
+    }
+
+    public void run() throws AWTException, InterruptedException {
+
+        LogManager.getLogManager().reset();
+        Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
+        logger.setLevel(Level.OFF);
+
+        Scanner in = new Scanner(System.in);
+        try {
+            GlobalScreen.registerNativeHook();
+        } catch (NativeHookException ex) {
+            System.err.println("There was a problem registering the native hook.");
+            System.err.println(ex.getMessage());
+
+            System.exit(1);
+        }
+        this.mouse = new MouseController();
+        GlobalScreen.addNativeMouseListener(this.mouse);
+        this.keyboard = new KeyboardController();
+        GlobalScreen.addNativeKeyListener(this.keyboard);
+
+        Thread.sleep(2000);
+
+        ArrayList<MouseController.Location> locations = new ArrayList<>();
+
+        int mcount = 2; // right, center-bottom
+        for(int i = 0; i <mcount ; i++) {
+            MouseController.Location location = getLocation();
+            locations.add(location);
+            System.out.println("saved " + i);
         }
 
-        for(int rightCount = 0; rightCount < 4; rightCount++) {
-            addRightButton("r-button" + rightCount, rightCount);
+        Thread.sleep(1000 * 5);
+
+        int pageCount = 206;
+
+        for(int i = 0; i < pageCount; i++) {
+
+            keyboard.press(157, 16, 53); //command + shift + 5
+
+            mouse.move(locations.get(1));
+            mouse.press(1);
+
+            Thread.sleep(6000);
+
+
+            mouse.move(locations.get(0));
+            mouse.press(1);
+            Thread.sleep(1000);
         }
 
 
-        primaryStage.setScene(new Scene(mainGrid, 700, 300));
-        primaryStage.show();
+//        keyboard.press(157  , 16, 53); //command + shift + 5
+
+
+
+
     }
 
-    private void addRightButton(String name, int y) {
+    private MouseController.Location getLocation() throws InterruptedException {
 
-        RightButton rightButton = new RightButton('c');
-        rGrid.add(rightButton.resetButton,0, y);
-        rGrid.add(rightButton.button, 1, y);
-
-//        Text lb1t = new Text(String.valueOf(rightButton.toChar()));
-//        lb1t.setFont(Font.font("Tahoma", FontWeight.NORMAL, 12));
-//        rGrid.add(lb1t, 2, y);
-    }
-
-
-    public static void main(String[] args) {
-        launch(args);
-    }
-
-    void addLeftButton(String name, int y) {
-
-        LeftButton leftButton = new LeftButton(name);
-        lGrid.add(leftButton.resetButton,0, y);
-        lGrid.add(leftButton.button, 1, y);
-
-        Text lb1t = new Text(leftButton.toString());
-        lb1t.setFont(Font.font("Tahoma", FontWeight.NORMAL, 12));
-        lGrid.add(lb1t, 2, y);
+        mouse.clicked = null;
+        while (mouse.clicked == null) {
+            System.out.println("loof");
+            Thread.sleep(500);
+        }
+        MouseController.Location location = mouse.clicked;
+        mouse.clicked = null;
+        return location;
     }
 }
